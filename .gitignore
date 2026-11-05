@@ -1,4 +1,16 @@
+# Dependencies and build output
 node_modules/
 dist/
+
+# Logs and local env files
 *.log
 .env*
+
+# Editor / OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test browser output
+.playwright-mcp/

@@ -7,6 +7,10 @@ export type Screen =
   | "classify-setup"
   | "classify-categories"
   | "material"
+  | "history"
+  | "settings"
+  | "evidence-setup"
+  | "evidence-entry"
   | "review";
 
 export type User = { name: string; initials: string };
@@ -151,4 +155,45 @@ export type Classification = {
   location: string;
   date: string;
   weights: Record<string, number>;
+};
+
+/** User-adjustable UX preferences (Settings screen). */
+export type Settings = {
+  entryMode: "buttons" | "voice";
+  questionLayout: "one-page" | "separate";
+  spokenFeedback: boolean;
+  /** 0 = Standard, 1 = Large, 2 = Extra (maps to .app-frame[data-ui-size]). */
+  uiSize: 0 | 1 | 2;
+  /** Pixels added to every text size (maps to --font-adjust). */
+  fontAdjust: number;
+  /** null = app default colors. */
+  fontColor: string | null;
+  /** Percent (maps to --app-brightness). */
+  brightness: number;
+};
+
+export const DEFAULT_FONT_COLOR = "#10231f";
+
+export const defaultSettings: Settings = {
+  entryMode: "buttons",
+  questionLayout: "one-page",
+  spokenFeedback: true,
+  uiSize: 1,
+  fontAdjust: 0,
+  fontColor: null,
+  brightness: 100,
+};
+
+export const MAX_EVIDENCE_IMAGES = 4;
+
+/** A photo picked for an evidence; `url` is an object URL used for the preview. */
+export type EvidenceImage = { file: File; url: string };
+
+/** One evidence in progress. */
+export type Evidence = {
+  organization: string;
+  location: string;
+  date: string;
+  images: EvidenceImage[];
+  notes: string;
 };

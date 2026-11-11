@@ -2,22 +2,28 @@ import { copy, type Language, type User } from "../data";
 import { OptionIcon } from "../icons";
 import { formatDateTime } from "../time";
 
+/** The entry most recently sent from this dashboard, shown as an "Edit last …" shortcut. */
+export type LastEntry = {
+  kind: "classification" | "evidence";
+  client: string;
+  location: string;
+  date: string;
+};
+
 type Props = {
   language: Language;
   user: User;
-  /** Set after a classification is sent; shows the "Edit last classification" shortcut. */
-  lastClassificationDate?: string;
-  onEditLastClassification: () => void;
+  lastEntry?: LastEntry | null;
+  onEditLastEntry: () => void;
   onOption: (option: string, index: number) => void;
 };
 
-export default function Dashboard({
-  language,
-  user,
-  lastClassificationDate,
-  onEditLastClassification,
-  onOption,
-}: Props) {
+const editLabel = {
+  classification: { EN: "Edit last classification", ES: "Editar última clasificación" },
+  evidence: { EN: "Edit last evidence", ES: "Editar última evidencia" },
+};
+
+export default function Dashboard({ language, user, lastEntry, onEditLastEntry, onOption }: Props) {
   const text = copy[language];
   return (
     <div className="screen dashboard-screen">
@@ -51,18 +57,18 @@ export default function Dashboard({
         ))}
       </div>
 
-      {lastClassificationDate && (
+      {lastEntry && (
         <button
           type="button"
-          className="recent-edit-button recent-classification-button"
-          onClick={onEditLastClassification}
+          className={`recent-edit-button recent-${lastEntry.kind}-button`}
+          onClick={onEditLastEntry}
         >
           <span aria-hidden="true">↶</span>
           <span>
-            <strong>
-              {language === "EN" ? "Edit last classification" : "Editar última clasificación"}
-            </strong>
-            <small>{formatDateTime(lastClassificationDate, language)}</small>
+            <strong>{editLabel[lastEntry.kind][language]}</strong>
+            <small>
+              {lastEntry.client} · {lastEntry.location} · {formatDateTime(lastEntry.date, language)}
+            </small>
           </span>
         </button>
       )}

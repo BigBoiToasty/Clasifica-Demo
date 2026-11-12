@@ -502,6 +502,7 @@ export default function App() {
             onPickCategory={pickCollectCategory}
             onHelp={(category) => setHelp({ category })}
             onSummary={() => navigate("collect-review")}
+            onHearSummary={speakCollectionSummary}
           />
         )}
 
@@ -540,6 +541,7 @@ export default function App() {
             onOpenCategory={openCategory}
             onHelp={(category) => setHelp({ category })}
             onSummary={() => navigate("review")}
+            onHearSummary={speakSummary}
           />
         )}
         {screen === "material" && (
@@ -560,6 +562,14 @@ export default function App() {
             onUpdateEntry={(id, edit) => {
               setHistory((prev) => prev.map((e) => (e.id === id ? { ...e, ...edit } : e)));
               confirmChoice(en ? "Entry updated" : "Registro actualizado");
+            }}
+            onDeleteEntry={(id) => {
+              setHistory((prev) => prev.filter((e) => e.id !== id));
+              speak(en ? "Entry deleted" : "Registro eliminado");
+            }}
+            onRestoreEntry={(entry) => {
+              setHistory((prev) => (prev.some((e) => e.id === entry.id) ? prev : [...prev, entry]));
+              confirmChoice(en ? "Entry restored" : "Registro restaurado");
             }}
             onHearSummary={speak}
           />

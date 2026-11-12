@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Language } from "../data";
-import { SpeakerIcon } from "../icons";
+import { SpeakerIcon, TrashIcon } from "../icons";
 
 export type EntryStatus = "collected" | "classified";
 
@@ -72,14 +72,26 @@ type Props = {
   language: Language;
   entries: HistoryEntry[];
   onUpdateEntry: (id: string, edit: EntryEdit) => void;
+  onDeleteEntry: (id: string) => void;
+  onRestoreEntry: (entry: HistoryEntry) => void;
   onHearSummary: (summary: string) => void;
 };
 
-export default function HistoryScreen({ language, entries, onUpdateEntry, onHearSummary }: Props) {
+export default function HistoryScreen({
+  language,
+  entries,
+  onUpdateEntry,
+  onDeleteEntry,
+  onRestoreEntry,
+  onHearSummary,
+}: Props) {
   const en = language === "EN";
   const [status, setStatus] = useState<EntryStatus>("collected");
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<HistoryEntry | null>(null);
+  const [deleting, setDeleting] = useState<HistoryEntry | null>(null);
+  // The entry just deleted, kept until you leave this page so "Undo" can bring it back.
+  const [undo, setUndo] = useState<HistoryEntry | null>(null);
 
   const visible = useMemo(
     () => filterEntries(entries, status, query, language),
@@ -154,6 +166,14 @@ export default function HistoryScreen({ language, entries, onUpdateEntry, onHear
               <small>{en ? "Weight" : "Peso"}: {entry.weightKg} kg</small>
               <small>{en ? "Number of bags" : "Cantidad de bolsas"}: {entry.bags}</small>
             </div>
+            <button
+              type="button"
+              className="history-delete"
+              onClick={() => setDeleting(entry)}
+              aria-label={en ? "Delete entry" : "Eliminar registro"}
+            >
+              <TrashIcon />
+            </button>
             <button type="button" onClick={() => setEditing(entry)}>
               {en ? "Edit" : "Editar"}
             </button>
@@ -167,6 +187,49 @@ export default function HistoryScreen({ language, entries, onUpdateEntry, onHear
         )}
       </div>
 
+      {undo && (
+        <div
+          role="status"
+          style={{
+            position: "sticky",
+            bottom: 0,
+            zIndex: 5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            marginTop: 12,
+            padding: "8px 8px 8px 16px",
+            borderRadius: 16,
+            color: "#fff",
+            background: "#102f2a",
+            boxShadow: "0 10px 30px rgb(0 0 0 / 25%)",
+            fontWeight: 700,
+          }}
+        >
+          <span>{en ? "Entry deleted" : "Registro eliminado"}</span>
+          <button
+            type="button"
+            onClick={() => {
+              onRestoreEntry(undo);
+              setUndo(null);
+            }}
+            style={{
+              minHeight: 48,
+              padding: "0 18px",
+              border: 0,
+              borderRadius: 12,
+              color: "#053d2e",
+              background: "#65e6bd",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            {en ? "Undo" : "Deshacer"}
+          </button>
+        </div>
+      )}
+
       {editing && (
         <EditEntrySheet
           key={editing.id}
@@ -176,6 +239,19 @@ export default function HistoryScreen({ language, entries, onUpdateEntry, onHear
           onSave={(edit) => {
             onUpdateEntry(editing.id, edit);
             setEditing(null);
+          }}
+        />
+      )}
+
+      {deleting && (
+        <DeleteEntrySheet
+          language={language}
+          entry={deleting}
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            onDeleteEntry(deleting.id);
+            setUndo(deleting);
+            setDeleting(null);
           }}
         />
       )}
@@ -241,6 +317,41 @@ function EditEntrySheet({
           </button>
           <button type="button" className="primary-button" onClick={save}>
             {en ? "Save" : "Guardar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteEntrySheet({
+  language,
+  entry,
+  onCancel,
+  onConfirm,
+}: {
+  language: Language;
+  entry: HistoryEntry;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const en = language === "EN";
+  return (
+    <div className="help-overlay" role="alertdialog" aria-modal="true" aria-label={en ? "Delete entry" : "Eliminar registro"}>
+      <div className="help-sheet">
+        <span className="eyebrow">{en ? "Delete entry" : "Eliminar registro"}</span>
+        <h3>{en ? "Delete this entry?" : "¿Eliminar este registro?"}</h3>
+        <p>
+          {entry.client} · {entry.location} · {formatDate(entry.dateEntered, language)}
+        </p>
+        <p>{en ? "This cannot be undone." : "Esto no se puede deshacer."}</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <button type="button" className="primary-button" style={{ background: "#e5e7eb", color: "#123d34" }} onClick={onCancel}>
+            {en ? "Cancel" : "Cancelar"}
+          </button>
+          <button type="button" className="primary-button" style={{ background: "#dc2626", color: "#fff" }} onClick={onConfirm}>
+            {en ? "Delete" : "Eliminar"}
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { categories, type CategoryId, type Classification, type Language } from "../data";
-import { CategoryIcon, InfoIcon } from "../icons";
+import { CategoryIcon, InfoIcon, SpeakerIcon } from "../icons";
 
 type Props = {
   language: Language;
@@ -7,6 +7,7 @@ type Props = {
   onOpenCategory: (category: CategoryId) => void;
   onHelp: (category: CategoryId) => void;
   onSummary: () => void;
+  onHearSummary: () => void;
 };
 
 export default function ClassifyCategories({
@@ -15,6 +16,7 @@ export default function ClassifyCategories({
   onOpenCategory,
   onHelp,
   onSummary,
+  onHearSummary,
 }: Props) {
   const en = language === "EN";
   const count = Object.keys(draft.weights).length;
@@ -28,6 +30,11 @@ export default function ClassifyCategories({
         </span>
         <h2>{en ? "What material?" : "¿Qué material?"}</h2>
       </div>
+
+      <button type="button" className="collect-voice-guide" onClick={onHearSummary}>
+        <SpeakerIcon />
+        {en ? "Hear summary" : "Escuchar resumen"}
+      </button>
 
       <div className="category-list">
         {categories.map((category, index) => (

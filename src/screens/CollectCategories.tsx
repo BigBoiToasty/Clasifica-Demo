@@ -1,6 +1,6 @@
 import { categories, organizations, type CategoryId, type Language } from "../data";
 import { totalWeight, type Collection } from "../collect";
-import { CategoryIcon, InfoIcon } from "../icons";
+import { CategoryIcon, InfoIcon, SpeakerIcon } from "../icons";
 
 type Props = {
   language: Language;
@@ -9,6 +9,7 @@ type Props = {
   onPickCategory: (category: CategoryId) => void;
   onHelp: (category: CategoryId) => void;
   onSummary: () => void;
+  onHearSummary: () => void;
 };
 
 export default function CollectCategories({
@@ -17,6 +18,7 @@ export default function CollectCategories({
   onPickCategory,
   onHelp,
   onSummary,
+  onHearSummary,
 }: Props) {
   const en = language === "EN";
   const count = draft.bags.length;
@@ -32,6 +34,11 @@ export default function CollectCategories({
         </span>
         <h2>{en ? "What material?" : "¿Qué material?"}</h2>
       </div>
+
+      <button type="button" className="collect-voice-guide" onClick={onHearSummary}>
+        <SpeakerIcon />
+        {en ? "Hear summary" : "Escuchar resumen"}
+      </button>
 
       <div className="category-list">
         {categories.map((category, index) => (

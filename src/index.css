@@ -3386,3 +3386,27 @@ a:focus-visible {
   flex: 1 0 auto;
   grid-auto-rows: 1fr;
 }
+
+.history-card {
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+}
+
+.history-card > .history-delete {
+  display: grid;
+  min-width: var(--tap-size);
+  min-height: calc(var(--tap-size) + 25px);
+  margin-right: -5px;
+  padding: 0;
+  place-items: center;
+  color: #fff;
+  background: #d84d48;
+}
+
+.history-delete svg {
+  width: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}

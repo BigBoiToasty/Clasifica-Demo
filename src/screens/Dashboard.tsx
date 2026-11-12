@@ -4,7 +4,7 @@ import { formatDateTime } from "../time";
 
 /** The entry most recently sent from this dashboard, shown as an "Edit last …" shortcut. */
 export type LastEntry = {
-  kind: "classification" | "evidence";
+  kind: "classification" | "evidence" | "collection";
   client: string;
   location: string;
   date: string;
@@ -21,6 +21,7 @@ type Props = {
 const editLabel = {
   classification: { EN: "Edit last classification", ES: "Editar última clasificación" },
   evidence: { EN: "Edit last evidence", ES: "Editar última evidencia" },
+  collection: { EN: "Edit last collection", ES: "Editar última recolección" },
 };
 
 export default function Dashboard({ language, user, lastEntry, onEditLastEntry, onOption }: Props) {

@@ -15,6 +15,7 @@ import {
   type User,
 } from "./data";
 import { formatDateTime, uruguayNow } from "./time";
+import { categoryLabel, collectionSummaryText, type Collection } from "./collect";
 import { BackIcon, HomeIcon, SettingsIcon } from "./icons";
 import SignIn from "./screens/SignIn";
 import Users from "./screens/Users";
@@ -27,6 +28,9 @@ import HistoryScreen, { SAMPLE_ENTRIES, type HistoryEntry } from "./screens/Hist
 import SettingsScreen from "./screens/Settings";
 import EvidenceSetup from "./screens/EvidenceSetup";
 import EvidenceEntry from "./screens/EvidenceEntry";
+import CollectSetup from "./screens/CollectSetup";
+import CollectReview from "./screens/CollectReview";
+import CollectCategories from "./screens/CollectCategories";
 import WeightSheet from "./components/WeightSheet";
 import HelpSheet from "./components/HelpSheet";
 
@@ -43,6 +47,13 @@ const newEvidence = (): Evidence => ({
   date: uruguayNow(),
   images: [],
   notes: "",
+});
+
+const newCollection = (): Collection => ({
+  organization: "",
+  location: "",
+  date: uruguayNow(),
+  bags: [],
 });
 
 const SETTINGS_KEY = "clasifica-settings";
@@ -68,6 +79,9 @@ const backTo: Partial<Record<Screen, Screen>> = {
   history: "dashboard",
   "evidence-setup": "dashboard",
   "evidence-entry": "evidence-setup",
+  "collect-setup": "dashboard",
+  "collect-review": "collect-setup",
+  "collect-categories": "collect-review",
 };
 
 // ponytail: manual entry + single-page setup only. Voice mode and the "pages" layout
@@ -251,8 +265,82 @@ export default function App() {
     );
   }
 
+  // ---- Collect ----
+  const [collection, setCollection] = useState<Collection>(newCollection);
+  // The bag whose weight is being entered: a new bag (no id) or an existing one being edited.
+  const [weightBag, setWeightBag] = useState<{ id?: string; category: CategoryId } | null>(null);
+  const updateCollection = (patch: Partial<Collection>) => setCollection((c) => ({ ...c, ...patch }));
+
+  function startCollection() {
+    setLastSent(null);
+    setCollection(newCollection());
+    navigate("collect-setup");
+  }
+
+  // Tapping a category starts a new bag; the weight sheet asks for its weight.
+  function pickCollectCategory(category: CategoryId) {
+    setWeightBag({ category });
+    confirmChoice(
+      en
+        ? `${categoryLabel(category, language)} selected`
+        : `${categoryLabel(category, language)} seleccionado`,
+    );
+  }
+
+  function editBag(id: string) {
+    const bag = collection.bags.find((b) => b.id === id);
+    if (bag) setWeightBag({ id, category: bag.category });
+  }
+
+  function saveBag(weight: number) {
+    if (!weightBag) return;
+    const label = categoryLabel(weightBag.category, language);
+    const editing = Boolean(weightBag.id);
+    setCollection((c) => ({
+      ...c,
+      bags: weightBag.id
+        ? c.bags.map((b) => (b.id === weightBag.id ? { ...b, weightKg: weight } : b))
+        : [...c.bags, { id: crypto.randomUUID(), category: weightBag.category, weightKg: weight }],
+    }));
+    confirmChoice(
+      editing
+        ? en ? `${label}: ${weight} kg updated` : `${label}: ${weight} kg actualizado`
+        : en ? `${label}: ${weight} kg added` : `${label}: ${weight} kg agregado`,
+    );
+    setWeightBag(null);
+  }
+
+  function removeBag(id: string) {
+    setCollection((c) => ({ ...c, bags: c.bags.filter((b) => b.id !== id) }));
+    confirmChoice(en ? "Bag removed" : "Bolsa eliminada");
+  }
+
+  function speakCollectionSummary() {
+    const org = organizations.find((o) => o.id === collection.organization)?.name;
+    const when = formatDateTime(collection.date, language);
+    speak(
+      `${en ? "Collection summary" : "Resumen de recolección"}. ${org}, ${collection.location}. ${when}. ${collectionSummaryText(collection, language)}`,
+    );
+  }
+
+  // ponytail: no backend yet, so "sending" just confirms, like submitClassification().
+  // The draft is kept (not reset) so the dashboard's "Edit last collection" can reopen it;
+  // startCollection() clears it.
+  function submitCollection() {
+    const edited = lastSent === "collection";
+    setLastSent("collection");
+    navigate("dashboard");
+    confirmChoice(
+      edited
+        ? en ? "Collection updated" : "Recolección actualizada"
+        : en ? "Collection saved" : "Recolección guardada",
+    );
+  }
+
   /** Details for the dashboard's "Edit last …" button. */
-  const lastSentEntry = lastSent && (lastSent === "classification" ? draft : evidence);
+  const lastSentEntry =
+    lastSent &&
+    (lastSent === "classification" ? draft : lastSent === "collection" ? collection : evidence);
   const lastEntry: LastEntry | null = lastSentEntry
     ? {
         kind: lastSent!,
@@ -264,6 +352,7 @@ export default function App() {
 
   function goHome() {
     setWeightMaterial("");
+    setWeightBag(null);
     setHelp(null);
     navigate("dashboard");
   }
@@ -358,13 +447,61 @@ export default function App() {
             language={language}
             user={user}
             lastEntry={lastEntry}
-            onEditLastEntry={() => navigate(lastSent === "evidence" ? "evidence-entry" : "review")}
+            onEditLastEntry={() =>
+              navigate(
+                lastSent === "evidence"
+                  ? "evidence-entry"
+                  : lastSent === "collection"
+                    ? "collect-review"
+                    : "review",
+              )
+            }
             onOption={(option, index) =>
+              index === 0 ? startCollection()
+              :
               index === 1 ? startClassification() 
               : index === 2 ? navigate("history")
               : index === 3 ? startEvidence()
               : flash(`${option} ${text.comingSoon}`)
             }
+          />
+        )}
+
+        {screen === "collect-setup" && (
+          <CollectSetup
+            language={language}
+            draft={collection}
+            onSelectOrganization={(id, name) => {
+              updateCollection({ organization: id, location: "" });
+              confirmChoice(`${name} ${en ? "selected" : "seleccionado"}`);
+            }}
+            onSelectLocation={(location) => {
+              updateCollection({ location });
+              confirmChoice(`${location} ${en ? "selected" : "seleccionada"}`);
+            }}
+            onDateChange={(date) => updateCollection({ date })}
+            onContinue={() => navigate("collect-review")}
+          />
+        )}
+        {screen === "collect-review" && (
+          <CollectReview
+            language={language}
+            draft={collection}
+            onDateChange={(date) => updateCollection({ date })}
+            onEditBag={editBag}
+            onRemoveBag={removeBag}
+            onHearSummary={speakCollectionSummary}
+            onAddBag={() => navigate("collect-categories")}
+            onSend={submitCollection}
+          />
+        )}
+        {screen === "collect-categories" && (
+          <CollectCategories
+            language={language}
+            draft={collection}
+            onPickCategory={pickCollectCategory}
+            onHelp={(category) => setHelp({ category })}
+            onSummary={() => navigate("collect-review")}
           />
         )}
 
@@ -472,6 +609,20 @@ export default function App() {
             initialWeight={draft.weights[weightMaterial] ?? 1}
             onCancel={() => setWeightMaterial("")}
             onSave={saveWeight}
+          />
+        )}
+        {weightBag && (
+          <WeightSheet
+            key={weightBag.id ?? `new-${weightBag.category}`}
+            language={language}
+            material={`${en ? "Bag" : "Bolsa"} ${
+              weightBag.id
+                ? collection.bags.findIndex((b) => b.id === weightBag.id) + 1
+                : collection.bags.length + 1
+            } · ${categoryLabel(weightBag.category, language)}`}
+            initialWeight={collection.bags.find((b) => b.id === weightBag.id)?.weightKg ?? 1}
+            onCancel={() => setWeightBag(null)}
+            onSave={saveBag}
           />
         )}
         {help && (

@@ -11,7 +11,10 @@ export type Screen =
   | "settings"
   | "evidence-setup"
   | "evidence-entry"
-  | "review";
+  | "review"
+  | "collect-setup"
+  | "collect-review"
+  | "collect-categories";
 
 export type User = { name: string; initials: string };
 
